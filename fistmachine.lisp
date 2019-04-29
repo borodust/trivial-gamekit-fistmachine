@@ -4,7 +4,8 @@
   (:export #:fistmachine
            #:initialize-state
            #:discard-state
-           #:transition-to))
+           #:transition-to
+           #:current-state))
 (cl:in-package :trivial-gamekit.fistmachine)
 
 
@@ -71,3 +72,7 @@
   (call-next-method)
   (with-slots (game-state) this
     (gamekit:draw game-state)))
+
+
+(defun current-state ()
+  (slot-value (gamekit:gamekit) 'game-state))
