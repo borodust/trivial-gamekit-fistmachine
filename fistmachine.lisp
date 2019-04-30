@@ -42,22 +42,9 @@
         (gamekit:push-action #'%transition-to)))))
 
 
-(defgeneric button-pressed (game-state button)
-  (:method (game-state button) (declare (ignore game-state button))))
-
-
-(defgeneric button-released (game-state button)
-  (:method (game-state button) (declare (ignore game-state button))))
-
-
 (defmethod gamekit:post-initialize ((this fistmachine))
   (call-next-method)
   (with-slots (game-state initial-state) this
-    (flet ((process-button (button state)
-             (case state
-               (:pressed (button-pressed game-state button))
-               (:released (button-released game-state button)))))
-      (gamekit:bind-any-button #'process-button))
     (when initial-state
       (transition-to initial-state))))
 
