@@ -61,5 +61,11 @@
     (gamekit:draw game-state)))
 
 
+(defmethod gamekit:notice-resources ((this fistmachine) &rest args)
+  (call-next-method)
+  (with-slots (game-state) this
+    (apply #'gamekit:notice-resources game-state args)))
+
+
 (defun current-state ()
   (slot-value (gamekit:gamekit) 'game-state))
