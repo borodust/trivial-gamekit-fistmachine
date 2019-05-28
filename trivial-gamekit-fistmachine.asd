@@ -3,6 +3,15 @@
   :author "Pavel Korolev"
   :mailto "dev@borodust.org"
   :license "MIT"
-  :depends-on (trivial-gamekit)
-  :serial t
+  :depends-on (trivial-docstring trivial-gamekit)
   :components ((:file "fistmachine")))
+
+
+(asdf:defsystem trivial-gamekit-fistmachine/example
+  :description "trivial-gamekit-fistmachine example"
+  :version "1.0.0"
+  :author "Pavel Korolev"
+  :mailto "dev@borodust.org"
+  :license "MIT"
+  :depends-on (trivial-gamekit-fistmachine)
+  :components ((:file "example")))
