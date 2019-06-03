@@ -3,7 +3,21 @@
 #+PROPERTY: header-args:glsl :results "none"
 * trivial-gamekit-fistmachine Example
 
-Example demonstrating how to use =trivial-gamekit-fistmachine= system.
+Example demonstrates how to use =trivial-gamekit-fistmachine= system.
+
+This =trivial-gamekit= plugin helps to manage game states and transitions
+between them. This is very handy for simple games, because you would certainly
+have a few clear and distinct states. E.g., those could be a loading screen
+(possibly animated), a main menu, maybe a pause menu, levels and an end-game
+screen. You would also probably have transitions like =loading screen= -> =main
+menu= -> =level= -> maybe =pause menu= -> =level= -> maybe =next level= ->
+=end-game screen=.
+
+=trivial-gamekit-fistmachine= allows you to use any class as a state class and
+exports =#'transition-to= function to jump between those states. =fistmachine=
+redirects all main =gamekit= instance functions like =#'draw=, =#'act= or
+=#'notice-resources= onto instance of your state class so you can switch
+behavior of your game with little effort by transitioning into required state.
 
 ** Preparations
 
@@ -21,45 +35,84 @@ Also lets define a package we will evaluate our code in.
     (:export #:run))
 #+END_SRC
 
-** The Code
+** States
+
+In this particular example, we will have two states and transition from one into
+another.
+
+**** Loading screen
+
+First we define a loading screen state. Many games has it - we can load any
+initial resources while keep users entertained with a vid or an animated
+something.
 
 #+BEGIN_SRC lisp :tangle example.lisp
   (cl:in-package :trivial-gamekit.fistmachine.example)
 
   (defclass loading-screen ()
     ((started-at :initform nil)))
+#+END_SRC
 
+We don't have anything particular to load, so we will just wait a few seconds
+before transitioning into our next state - main menu.
+
+#+BEGIN_SRC lisp :tangle example.lisp
+  (cl:in-package :trivial-gamekit.fistmachine.example)
 
   (defmethod gamekit.fistmachine:initialize-state ((this loading-screen) &key)
     (with-slots (started-at) this
       (setf started-at (bodge-util:real-time-seconds))))
 
-
   (defmethod gamekit:act ((this loading-screen))
     (with-slots (started-at) this
       (when (> (- (bodge-util:real-time-seconds) started-at) 3)
+        ;; if enough seconds passed since we reached current state
+        ;; transition to main-menu
         (gamekit.fistmachine:transition-to 'main-menu))))
-
-
-  (defmethod gamekit:draw ((this loading-screen))
-    (with-slots (selected) this
-      (gamekit:with-pushed-canvas ()
-        (gamekit:translate-canvas 300 400)
-        (gamekit:scale-canvas 2 2)
-        (gamekit:draw-text "LOADING" (gamekit:vec2 0 0))
-        (let* ((amplitude 35)
-               (x-coord (* amplitude (cos (* (bodge-util:real-time-seconds) 3)))))
-          (gamekit:draw-circle (gamekit:vec2 (+ x-coord 29) -10) 2.5
-                               :fill-paint (gamekit:vec4 0 0 0 1))))))
 #+END_SRC
+
+A little animated screen will let our users know we are still alive and well.
 
 #+BEGIN_SRC lisp :tangle example.lisp
   (cl:in-package :trivial-gamekit.fistmachine.example)
 
-  (defclass main-menu ()
-    ((selected :initform 0)))
+  (defmethod gamekit:draw ((this loading-screen))
+    (gamekit:with-pushed-canvas ()
+      (gamekit:translate-canvas 300 400)
+      (gamekit:scale-canvas 2 2)
+      (gamekit:draw-text "LOADING" (gamekit:vec2 0 0))
+      (let* ((amplitude 35)
+             (x-coord (* amplitude (cos (* (bodge-util:real-time-seconds) 3)))))
+        (gamekit:draw-circle (gamekit:vec2 (+ x-coord 29) -10) 2.5
+                             :fill-paint (gamekit:vec4 0 0 0 1)))))
+#+END_SRC
+
+**** Main menu
+
+Our loading must transition into something - that would be a main menu with two
+options.
+
+#+BEGIN_SRC lisp :tangle example.lisp
+  (cl:in-package :trivial-gamekit.fistmachine.example)
 
   (defparameter *options* #("START" "QUIT"))
+
+  (defclass main-menu ()
+    ((selected :initform 0)))
+#+END_SRC
+
+We are not making a game here, so "Start" option would just throw us back to
+loading screen. And "Quit" will stop the example.
+
+We bind =:up= / =:down= arrow keys to switch between options and =:enter= key to
+perform selected action.
+
+=#'initialize-state= is invoked when the state is reached and
+an instance of a state is initialized. Here we can put anything our state
+requires - acquire resources, bind input or maybe play audio.
+
+#+BEGIN_SRC lisp :tangle example.lisp
+  (cl:in-package :trivial-gamekit.fistmachine.example)
 
   (defmethod gamekit.fistmachine:initialize-state ((this main-menu) &key)
     (with-slots (selected) this
@@ -77,12 +130,26 @@ Also lets define a package we will evaluate our code in.
                                ((= selected 1)
                                 (gamekit:stop)))))))
 
+#+END_SRC
+
+=#'discard-state= is called once we are leaving the state and in the process of
+transitioning into another state. We can release all resources previously
+acquired in =initialize-state= or do any other cleanups.
+
+
+#+BEGIN_SRC lisp :tangle example.lisp
+  (cl:in-package :trivial-gamekit.fistmachine.example)
 
   (defmethod gamekit.fistmachine:discard-state ((this main-menu))
     (gamekit:bind-button :down :pressed nil)
     (gamekit:bind-button :up :pressed nil)
     (gamekit:bind-button :enter :pressed nil))
+#+END_SRC
 
+Let's put code to actually draw our menu.
+
+#+BEGIN_SRC lisp :tangle example.lisp
+  (cl:in-package :trivial-gamekit.fistmachine.example)
 
   (defmethod gamekit:draw ((this main-menu))
     (with-slots (selected) this
@@ -97,6 +164,12 @@ Also lets define a package we will evaluate our code in.
 
 #+END_SRC
 
+**** FISTMACHINE
+
+To enable =fistmachine= plugin we need to add =fistmachine= as a superclass to
+our =defgame=. Class of our initial state we must provide in =:initial-state=
+default initarg.
+
 #+BEGIN_SRC lisp :tangle example.lisp
   (cl:in-package :trivial-gamekit.fistmachine.example)
 
@@ -105,7 +178,8 @@ Also lets define a package we will evaluate our code in.
     (:default-initargs :initial-state 'loading-screen))
 #+END_SRC
 
-Next we define and export a function to run our example.
+And that's really it. Next we define and export a function to run our example.
+
 #+BEGIN_SRC lisp :tangle example.lisp
   (cl:in-package :trivial-gamekit.fistmachine.example)
 

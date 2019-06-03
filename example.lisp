@@ -7,35 +7,39 @@
 (defclass loading-screen ()
   ((started-at :initform nil)))
 
+(cl:in-package :trivial-gamekit.fistmachine.example)
 
 (defmethod gamekit.fistmachine:initialize-state ((this loading-screen) &key)
   (with-slots (started-at) this
     (setf started-at (bodge-util:real-time-seconds))))
 
-
 (defmethod gamekit:act ((this loading-screen))
   (with-slots (started-at) this
     (when (> (- (bodge-util:real-time-seconds) started-at) 3)
+      ;; if enough seconds passed since we reached current state
+      ;; transition to main-menu
       (gamekit.fistmachine:transition-to 'main-menu))))
 
+(cl:in-package :trivial-gamekit.fistmachine.example)
 
 (defmethod gamekit:draw ((this loading-screen))
-  (with-slots (selected) this
-    (gamekit:with-pushed-canvas ()
-      (gamekit:translate-canvas 300 400)
-      (gamekit:scale-canvas 2 2)
-      (gamekit:draw-text "LOADING" (gamekit:vec2 0 0))
-      (let* ((amplitude 35)
-             (x-coord (* amplitude (cos (* (bodge-util:real-time-seconds) 3)))))
-        (gamekit:draw-circle (gamekit:vec2 (+ x-coord 29) -10) 2.5
-                             :fill-paint (gamekit:vec4 0 0 0 1))))))
+  (gamekit:with-pushed-canvas ()
+    (gamekit:translate-canvas 300 400)
+    (gamekit:scale-canvas 2 2)
+    (gamekit:draw-text "LOADING" (gamekit:vec2 0 0))
+    (let* ((amplitude 35)
+           (x-coord (* amplitude (cos (* (bodge-util:real-time-seconds) 3)))))
+      (gamekit:draw-circle (gamekit:vec2 (+ x-coord 29) -10) 2.5
+                           :fill-paint (gamekit:vec4 0 0 0 1)))))
 
 (cl:in-package :trivial-gamekit.fistmachine.example)
+
+(defparameter *options* #("START" "QUIT"))
 
 (defclass main-menu ()
   ((selected :initform 0)))
 
-(defparameter *options* #("START" "QUIT"))
+(cl:in-package :trivial-gamekit.fistmachine.example)
 
 (defmethod gamekit.fistmachine:initialize-state ((this main-menu) &key)
   (with-slots (selected) this
@@ -53,12 +57,14 @@
                              ((= selected 1)
                               (gamekit:stop)))))))
 
+(cl:in-package :trivial-gamekit.fistmachine.example)
 
 (defmethod gamekit.fistmachine:discard-state ((this main-menu))
   (gamekit:bind-button :down :pressed nil)
   (gamekit:bind-button :up :pressed nil)
   (gamekit:bind-button :enter :pressed nil))
 
+(cl:in-package :trivial-gamekit.fistmachine.example)
 
 (defmethod gamekit:draw ((this main-menu))
   (with-slots (selected) this
