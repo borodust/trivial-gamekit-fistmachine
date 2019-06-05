@@ -2,8 +2,6 @@
   (:nicknames :gamekit.fistmachine)
   (:use :cl)
   (:export #:fistmachine
-           #:initialize-state
-           #:discard-state
            #:transition-to
            #:current-state))
 (cl:in-package :trivial-gamekit.fistmachine)
@@ -12,15 +10,6 @@
 (defclass fistmachine ()
   ((game-state :initform nil)
    (initial-state :initarg :initial-state :initform nil)))
-
-
-(defgeneric initialize-state (game-state &key &allow-other-keys)
-  (:method (game-state &key &allow-other-keys)
-    (declare (ignore game-state))))
-
-
-(defgeneric discard-state (game-state)
-  (:method (game-state) (declare (ignore game-state))))
 
 
 (defun transition-to (state-class &rest args &key &allow-other-keys)
@@ -33,36 +22,38 @@
                   begin
                     (restart-case
                         (progn
-                          (discard-state game-state)
+                          (gamekit:pre-destroy game-state)
                           (setf game-state (apply #'make-instance state-class args))
-                          (apply #'initialize-state game-state args))
+                          (gamekit:post-initialize game-state))
                       (retry-transition ()
                         :report %report-retry
                         (go begin))))))
         (gamekit:push-action #'%transition-to)))))
 
 
-(defmethod gamekit:post-initialize ((this fistmachine))
-  (call-next-method)
+(defmethod gamekit:post-initialize :after ((this fistmachine))
   (with-slots (game-state initial-state) this
     (when initial-state
       (transition-to initial-state))))
 
 
-(defmethod gamekit:act ((this fistmachine))
-  (call-next-method)
+(defmethod gamekit:pre-destroy :before ((this fistmachine))
+  (with-slots (game-state) this
+    (when game-state
+      (gamekit:pre-destroy game-state))))
+
+
+(defmethod gamekit:act :after ((this fistmachine))
   (with-slots (game-state) this
     (gamekit:act game-state)))
 
 
-(defmethod gamekit:draw ((this fistmachine))
-  (call-next-method)
+(defmethod gamekit:draw :after ((this fistmachine))
   (with-slots (game-state) this
     (gamekit:draw game-state)))
 
 
-(defmethod gamekit:notice-resources ((this fistmachine) &rest args)
-  (call-next-method)
+(defmethod gamekit:notice-resources :after ((this fistmachine) &rest args)
   (with-slots (game-state) this
     (apply #'gamekit:notice-resources game-state args)))
 

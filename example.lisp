@@ -9,7 +9,7 @@
 
 (cl:in-package :trivial-gamekit.fistmachine.example)
 
-(defmethod gamekit.fistmachine:initialize-state ((this loading-screen) &key)
+(defmethod gamekit:post-initialize ((this loading-screen) &key)
   (with-slots (started-at) this
     (setf started-at (bodge-util:real-time-seconds))))
 
@@ -41,7 +41,7 @@
 
 (cl:in-package :trivial-gamekit.fistmachine.example)
 
-(defmethod gamekit.fistmachine:initialize-state ((this main-menu) &key)
+(defmethod gamekit.fistmachine:post-initialize ((this main-menu) &key)
   (with-slots (selected) this
     (gamekit:bind-button :down :pressed
                          (lambda ()
@@ -59,7 +59,7 @@
 
 (cl:in-package :trivial-gamekit.fistmachine.example)
 
-(defmethod gamekit.fistmachine:discard-state ((this main-menu))
+(defmethod gamekit.fistmachine:pre-destroy ((this main-menu))
   (gamekit:bind-button :down :pressed nil)
   (gamekit:bind-button :up :pressed nil)
   (gamekit:bind-button :enter :pressed nil))

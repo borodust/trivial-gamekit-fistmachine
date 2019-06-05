@@ -59,7 +59,7 @@ before transitioning into our next state - main menu.
 #+BEGIN_SRC lisp :tangle example.lisp
   (cl:in-package :trivial-gamekit.fistmachine.example)
 
-  (defmethod gamekit.fistmachine:initialize-state ((this loading-screen) &key)
+  (defmethod gamekit:post-initialize ((this loading-screen) &key)
     (with-slots (started-at) this
       (setf started-at (bodge-util:real-time-seconds))))
 
@@ -107,14 +107,14 @@ loading screen. And "Quit" will stop the example.
 We bind =:up= / =:down= arrow keys to switch between options and =:enter= key to
 perform selected action.
 
-=#'initialize-state= is invoked when the state is reached and
-an instance of a state is initialized. Here we can put anything our state
-requires - acquire resources, bind input or maybe play audio.
+=#'gamekit:post-initialize= is invoked when the state is reached and an instance
+of a state is initialized. Here we can put anything our state requires - acquire
+resources, bind input or maybe play audio.
 
 #+BEGIN_SRC lisp :tangle example.lisp
   (cl:in-package :trivial-gamekit.fistmachine.example)
 
-  (defmethod gamekit.fistmachine:initialize-state ((this main-menu) &key)
+  (defmethod gamekit.fistmachine:post-initialize ((this main-menu) &key)
     (with-slots (selected) this
       (gamekit:bind-button :down :pressed
                            (lambda ()
@@ -132,15 +132,15 @@ requires - acquire resources, bind input or maybe play audio.
 
 #+END_SRC
 
-=#'discard-state= is called once we are leaving the state and in the process of
-transitioning into another state. We can release all resources previously
-acquired in =initialize-state= or do any other cleanups.
+=#'gamekit:pre-destroy= is called once we are leaving the state and in the
+process of transitioning into another state. We can release all resources
+previously acquired in =#'gamekit:post-initialize= or do any other cleanups.
 
 
 #+BEGIN_SRC lisp :tangle example.lisp
   (cl:in-package :trivial-gamekit.fistmachine.example)
 
-  (defmethod gamekit.fistmachine:discard-state ((this main-menu))
+  (defmethod gamekit.fistmachine:pre-destroy ((this main-menu))
     (gamekit:bind-button :down :pressed nil)
     (gamekit:bind-button :up :pressed nil)
     (gamekit:bind-button :enter :pressed nil))
